@@ -1,0 +1,125 @@
+# Version du docker compose
+version: '3'
+
+services:
+
+#-------Configuration du Container MARIADB--------
+  mariadb:
+    container_name: mariadb
+
+# Nom de l'image générée par docker-compose
+    image: mariadb
+
+# Déclaration des fichiers utilitaires du Container
+    build: ./requirements/mariadb/
+
+# on va chercher en local le fichier .env avec les info de log
+    env_file:
+      - ~/Documents/Inception/.env
+
+# Déclaration du Volume de sauvegarde
+    volumes:
+      - mariadb_data:/var/lib/mysql
+
+# Déclaration du network utilisé par le Container
+    networks:
+      - my_network
+
+# Instruction de redemarrage
+# - unless-stopped : ne redémarrera pas si le stop viens de nous
+    restart: unless-stopped
+
+
+
+#--------Configuration du Container WORDPRESS---------
+  wordpress:
+    container_name: wordpress
+
+# Nom de l'image générée par docker-compose
+    image: wordpress
+
+# Dépendance du Container
+    depends_on:
+      - mariadb
+
+# Déclaration des fichiers utilitaires du Container
+    build: ./requirements/wordpress/
+
+# on va chercher en local le fichier .env avec les info de log
+    env_file:
+      - ~/Documents/Inception/.env
+
+# Déclaration du Volume de sauvegarde
+    volumes:
+      - wordpress_data:/var/www/html/wordpress
+
+# Déclaration du network utilisé par le Container
+    networks:
+      - my_network
+
+# Instruction de redemarrage
+# - unless-stopped : ne redémarrera pas si le stop viens de nous
+    restart: unless-stopped
+
+
+
+# -----Configuration du Container Nginx-------
+  nginx:
+# Nom du Container
+    container_name: nginx
+
+# Nom de l'image générée par docker-compose
+    image: nginx
+
+# Dépendance du Container
+    depends_on:
+      - wordpress
+
+# Déclaration des fichiers utilitaires du Container
+    build: ./requirements/nginx/
+
+# Déclaration du Volume de sauvegarde
+    volumes:
+      - wordpress_data:/var/www/html/wordpress
+
+# Déclaration du network utilisé par le Container
+    networks:
+      - my_network
+
+# Déclaration du port de communication avec Internet
+    ports:
+      - "443:443"
+
+# Instruction de redemarrage
+# - unless-stopped : ne redémarrera pas si le stop viens de nous
+    restart: unless-stopped
+
+
+#------NETWORKS---------------------
+
+networks:
+  my_network:
+  #driver:bridge -> reseau custom vs local ou autre
+  # on ne va pas etre connecte aux autres reseaux
+    name: my_network
+    driver: bridge
+  
+#-------VOLUMES-----------------------
+
+volumes:
+  wordpress_data:
+    driver: local
+    name: wordpress_data
+    driver_opts:
+      device: /home/cgranja/data/wordpress
+      type: none
+      o: bind
+
+  mariadb_data:
+    driver: local
+    name: mariadb_data
+    driver_opts:
+      device: /home/cgranja/data/mariadb
+      type: none
+#necessaire pour la liaison pour "mariadb_data"
+      o: bind
